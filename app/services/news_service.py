@@ -1,5 +1,5 @@
 from typing import Optional, Dict, Any
-
+from datetime import date
 import httpx
 from fastapi import HTTPException
 
@@ -10,7 +10,7 @@ from app.core.config import CACHE_TTL_SECONDS
 
 async def get_news_payload(
     q: Optional[str],
-    from_date: Optional[str],
+    from_date: Optional[date],
     language: str,
 ) -> Dict[str, Any]:
     """
@@ -47,9 +47,11 @@ async def get_news_payload(
         "language": language,
         "count": len(articles),
         "articles": articles,
-        "disclaimer": "Educational/informational only. Not financial advice.",
+        
         "cache": {"hit": False, "ttl_seconds": CACHE_TTL_SECONDS},
     }
 
     cache_set(cache_key, payload, ttl_seconds=CACHE_TTL_SECONDS)
     return payload
+
+# "disclaimer": "Educational/informational only. Not financial advice.",

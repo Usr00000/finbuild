@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title or "FinBuild" }}</title>
+
+  <link rel="stylesheet" href="/static/styles.css" />
+
+  <!-- HTMX: minimal JS for partial page updates (no framework) -->
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <h1 class="brand">FinBuild</h1>
+      <p class="tagline">Educational financial news + concepts (non-advisory)</p>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <small>
+        Disclaimer: Informational/educational only. Not financial advice.
+      </small>
+    </div>
+  </footer>
+</body>
+</html>

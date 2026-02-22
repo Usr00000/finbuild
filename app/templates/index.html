@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="card">
+  <h2>News Explorer</h2>
+
+  <!-- HTMX form: sends GET to /partials/news-results and swaps #results -->
+  <form
+    class="form"
+    hx-get="/partials/news-results"
+    hx-target="#results"
+    hx-swap="innerHTML"
+  >
+    <label>
+      Keyword (optional)
+      <input type="text" name="q" placeholder="e.g., tesla, inflation, boe" />
+    </label>
+
+    <label>
+      From date (optional)
+      <input type="date" name="from_date" />
+    </label>
+
+    <label>
+      Language
+      <select name="language">
+        <option value="en" selected>en</option>
+        <option value="fr">fr</option>
+        <option value="de">de</option>
+        <option value="es">es</option>
+      </select>
+    </label>
+
+    <button type="submit">Search</button>
+  </form>
+
+  <div class="hint">
+    Tip: leave keyword empty to load general business headlines.
+  </div>
+</section>
+
+<section class="card">
+  <h2>Results</h2>
+
+  <!-- Initial state: we can show a prompt or load default feed -->
+  <div id="results">
+    <p class="muted">Run a search to load articles.</p>
+  </div>
+</section>
+
+{% endblock %}

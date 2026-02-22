@@ -1,0 +1,38 @@
+{% if error %}
+  <div class="error">
+    <strong>Error:</strong> {{ error }}
+  </div>
+{% else %}
+  <div class="meta">
+    <div><strong>Mode:</strong> {{ payload.mode }}</div>
+    <div><strong>Query:</strong> {{ payload.query or "—" }}</div>
+    <div><strong>From:</strong> {{ payload.from_date or "—" }}</div>
+    <div><strong>Language:</strong> {{ payload.language }}</div>
+    <div><strong>Cache hit:</strong> {{ "Yes" if payload.cache.hit else "No" }}</div>
+    <div><strong>Count:</strong> {{ payload.count }}</div>
+  </div>
+
+  {% if payload.articles and payload.articles|length > 0 %}
+    <ul class="articles">
+      {% for a in payload.articles %}
+        <li class="article">
+          <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">
+            {{ a.title or "Untitled" }}
+          </a>
+          <div class="sub">
+            <span>{{ a.source or "Unknown source" }}</span>
+            <span>•</span>
+            <span>{{ a.published_at or "" }}</span>
+          </div>
+          {% if a.description %}
+            <p class="desc">{{ a.description }}</p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No articles found for that query.</p>
+  {% endif %}
+
+  <p class="disclaimer">{{ payload.disclaimer }}</p>
+{% endif %}

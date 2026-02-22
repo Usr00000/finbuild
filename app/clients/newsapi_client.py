@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-
+from datetime import date
 import httpx
 
 from app.core.config import NEWSAPI_KEY, NEWSAPI_BASE_URL
@@ -7,7 +7,7 @@ from app.core.config import NEWSAPI_KEY, NEWSAPI_BASE_URL
 
 async def fetch_newsapi_articles(
     q: Optional[str],
-    from_date: Optional[str],
+    from_date: Optional[date],
     language: str,
     page_size: int = 10,
 ) -> List[Dict[str, Any]]:
@@ -33,7 +33,7 @@ async def fetch_newsapi_articles(
             "pageSize": page_size,
         }
         if from_date:
-            params["from"] = from_date
+            params["from"] = from_date.isoformat()
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.get(url, params=params, headers=headers)
