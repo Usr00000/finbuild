@@ -23,7 +23,11 @@ class NewsResponse(BaseModel):
     mode: Literal["default", "search"]
     query: Optional[str] = None
     from_date: Optional[date] = None
+    to_date: Optional[date] = None
     language: str = "en"
     count: int
     articles: List[Article]
+    page: int = 1
+    page_size: int = 10
+    has_next: bool = False
     cache: CacheInfo

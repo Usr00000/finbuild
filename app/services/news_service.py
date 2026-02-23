@@ -11,7 +11,9 @@ from app.core.config import CACHE_TTL_SECONDS
 async def get_news_payload(
     q: Optional[str],
     from_date: Optional[date],
+    to_date: Optional[date],
     language: str,
+    page: int = 1,
 ) -> Dict[str, Any]:
     """
     Business logic for /news:
@@ -19,7 +21,13 @@ async def get_news_payload(
     - calling the client
     - returning stable JSON response
     """
-    cache_key = (q, from_date, language)
+    if from_date and to_date and from_date > to_date:
+        raise HTTPException(status_code=422, detail="from_date must be earlier than or equal to to_date.")
+    if page < 1:
+        raise HTTPException(status_code=422, detail="page must be >= 1.")
+
+    page_size = 10
+    cache_key = (q, from_date, to_date, language, page, page_size)
     cached = cache_get(cache_key)
     if cached:
         cached["cache"] = {"hit": True, "ttl_seconds": CACHE_TTL_SECONDS}
@@ -28,7 +36,14 @@ async def get_news_payload(
     mode = "search" if q else "default"
 
     try:
-        articles = await fetch_newsapi_articles(q=q, from_date=from_date, language=language)
+        articles, has_next = await fetch_newsapi_articles(
+            q=q,
+            from_date=from_date,
+            to_date=to_date,
+            language=language,
+            page=page,
+            page_size=page_size,
+        )
     except httpx.HTTPStatusError as e:
         # Convert external API errors into clean HTTP responses
         status = e.response.status_code if e.response else 502
@@ -44,10 +59,13 @@ async def get_news_payload(
         "mode": mode,
         "query": q,
         "from_date": from_date,
+        "to_date": to_date,
         "language": language,
         "count": len(articles),
         "articles": articles,
-        
+        "page": page,
+        "page_size": page_size,
+        "has_next": has_next,
         "cache": {"hit": False, "ttl_seconds": CACHE_TTL_SECONDS},
     }
 

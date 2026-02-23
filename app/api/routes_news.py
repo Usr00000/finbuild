@@ -12,6 +12,8 @@ router = APIRouter()
 async def news(
     q: Optional[str] = None,
     from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
     language: str = "en",
+    page: int = 1,
 ):
-    return await get_news_payload(q=q, from_date=from_date, language=language)
+    return await get_news_payload(q=q, from_date=from_date, to_date=to_date, language=language, page=page)
