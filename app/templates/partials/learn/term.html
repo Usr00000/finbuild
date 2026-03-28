@@ -1,0 +1,26 @@
+{% if error %}
+  <div class="error"><strong>Notice:</strong> {{ error }}</div>
+{% else %}
+  <article class="term-card">
+    <h4>{{ term.term }}</h4>
+    <p>{{ term.definition }}</p>
+
+    {% if term.aliases and term.aliases|length > 0 %}
+      <p class="muted"><strong>Also called:</strong> {{ term.aliases | join(', ') }}</p>
+    {% endif %}
+
+    {% if related and related|length > 0 %}
+      <div class="related-row">
+        <strong>Related terms:</strong>
+        <div class="term-pills">
+          {% for item in related %}
+            <form hx-get="/partials/learn/term" hx-target="#learn-term-result" hx-swap="innerHTML">
+              <input type="hidden" name="q" value="{{ item.term }}" />
+              <button type="submit" class="pill">{{ item.term }}</button>
+            </form>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </article>
+{% endif %}

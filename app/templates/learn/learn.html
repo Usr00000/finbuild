@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Educational Hub</h2>
+  <p class="muted">Search financial terms and jump through related concepts.</p>
+
+  <form
+    class="form-learn"
+    hx-get="/partials/learn/term"
+    hx-target="#learn-term-result"
+    hx-swap="innerHTML"
+  >
+    <label>
+      Term
+      <input type="text" name="q" placeholder="e.g., support, RSI, breakout" />
+    </label>
+    <button type="submit">Search Term</button>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Popular Terms</h3>
+  <div
+    id="learn-popular"
+    hx-get="/partials/learn/popular"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+  >
+    <p class="muted">Loading popular terms...</p>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Term Details</h3>
+  <div id="learn-term-result">
+    <p class="muted">Search a term or click one of the popular terms above.</p>
+  </div>
+</section>
+{% endblock %}

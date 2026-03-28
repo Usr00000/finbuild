@@ -1,0 +1,117 @@
+{% if error and not concept %}
+  <div class="error"><strong>Concept not found:</strong> {{ error }}</div>
+  {% if suggestions and suggestions|length > 0 %}
+    <p class="muted"><strong>Try one of these:</strong></p>
+    <div class="term-pills">
+      {% for suggestion in suggestions %}
+        <form hx-get="/partials/learn/concept" hx-target="#learn-results" hx-swap="innerHTML">
+          <input type="hidden" name="q" value="{{ suggestion }}" />
+          <button type="submit" class="pill">{{ suggestion }}</button>
+        </form>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <p class="muted">Or choose a topic from the Popular Concepts section.</p>
+{% elif concept %}
+  <article class="term-card">
+    <section>
+      <h4>{{ concept.term }}</h4>
+      <p><strong>Definition:</strong> {{ concept.short_definition }}</p>
+    </section>
+
+    <section>
+      <h5>Beginner Explanation</h5>
+      <p>{{ concept.beginner_explanation }}</p>
+    </section>
+
+    <section>
+      <h5>Simple Example</h5>
+      <p>{{ concept.simple_example }}</p>
+    </section>
+
+    <section>
+      <h5>Why It Matters</h5>
+      <p>{{ concept.why_it_matters }}</p>
+    </section>
+
+    <section>
+      <h5>Recent Real-World Example</h5>
+      {% if news_examples and news_examples|length > 0 %}
+        <ul class="articles">
+          {% for article in news_examples %}
+            <li class="article">
+              <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title or "Untitled" }}</a>
+              <div class="sub">
+                <span>{{ article.source or "Unknown source" }}</span>
+                <span>•</span>
+                <span>{{ article.published_at or "" }}</span>
+                <span>•</span>
+                <span>Relevance: {{ article.relevance_score }}</span>
+              </div>
+              {% if article.description %}
+                <p class="desc">{{ article.description }}</p>
+              {% endif %}
+              <p class="muted">{{ article.relevance_reason }}</p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">No recent matching news examples found.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h5>Related Terms</h5>
+      {% if concept.related_terms and concept.related_terms|length > 0 %}
+        <div class="term-pills">
+          {% for related in concept.related_terms %}
+            <form hx-get="/partials/learn/concept" hx-target="#learn-results" hx-swap="innerHTML">
+              <input type="hidden" name="q" value="{{ related }}" />
+              <button type="submit" class="pill">{{ related }}</button>
+            </form>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">No related terms listed yet.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h5>Mini Quiz</h5>
+      {% if concept.quiz and concept.quiz|length > 0 %}
+        <form
+          hx-post="/partials/learn/quiz/mark"
+          hx-target="#quiz-results"
+          hx-swap="innerHTML"
+          class="quiz-form"
+        >
+          <input type="hidden" name="concept_key" value="{{ concept.key }}" />
+
+          {% for question in concept.quiz %}
+            {% set question_idx = loop.index0 %}
+            <fieldset class="quiz-block">
+              <legend><strong>Q{{ loop.index }}.</strong> {{ question.question }}</legend>
+              {% for opt in question.options %}
+                <label class="quiz-option">
+                  <input
+                    type="radio"
+                    name="answer_{{ question_idx }}"
+                    value="{{ loop.index0 }}"
+                  />
+                  {{ opt }}
+                </label>
+              {% endfor %}
+            </fieldset>
+          {% endfor %}
+
+          <button type="submit">Mark Quiz Instantly</button>
+        </form>
+        <div id="quiz-results" class="quiz-results-panel"></div>
+      {% else %}
+        <p class="muted">No quiz configured for this concept yet.</p>
+      {% endif %}
+    </section>
+  </article>
+{% else %}
+  <div class="error">Could not load this concept right now. Please try again.</div>
+{% endif %}

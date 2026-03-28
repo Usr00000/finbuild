@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Chart Doctor</h2>
+  <p class="muted">Upload a chart screenshot. We detect likely fields and let you review before pulling related news.</p>
+
+  <form
+    class="form-chart-upload"
+    hx-post="/chart-doctor/detect"
+    hx-target="#doctor-detect"
+    hx-swap="innerHTML"
+    hx-encoding="multipart/form-data"
+  >
+    <label>
+      Chart image (PNG/JPG)
+      <input type="file" name="image" accept="image/png,image/jpeg" required />
+    </label>
+    <button type="submit">Detect</button>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Detection</h3>
+  <div id="doctor-detect">
+    <p class="muted">Upload an image to generate a prefilled review form.</p>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Related News</h3>
+  <div id="doctor-news">
+    <p class="muted">News results will appear here after review submission.</p>
+  </div>
+</section>
+{% endblock %}

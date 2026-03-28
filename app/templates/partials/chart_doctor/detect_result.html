@@ -1,0 +1,61 @@
+{% if error %}
+  <div class="error"><strong>Error:</strong> {{ error }}</div>
+{% elif detection %}
+  <div class="meta">
+    <div><strong>Detection note:</strong> {{ detection.notes }}</div>
+    <div><strong>Symbol confidence:</strong> {{ confidence_pct(detection.confidence.symbol) }}%</div>
+    <div><strong>Timeframe confidence:</strong> {{ confidence_pct(detection.confidence.timeframe) }}%</div>
+    <div><strong>Pattern confidence:</strong> {{ confidence_pct(detection.confidence.pattern) }}%</div>
+  </div>
+
+  <form
+    class="form-chart-review"
+    hx-post="/chart-doctor/news"
+    hx-target="#doctor-news"
+    hx-swap="innerHTML"
+  >
+    <label>
+      Ticker / Symbol
+      <input type="text" name="symbol" value="{{ detection.symbol }}" placeholder="e.g., AAPL, TSLA" required />
+    </label>
+
+    <label>
+      Timeframe
+      <input type="text" name="timeframe" value="{{ detection.timeframe }}" />
+    </label>
+
+    <label>
+      Pattern
+      <input type="text" name="pattern" value="{{ detection.pattern }}" />
+    </label>
+
+    <label>
+      From date
+      <input type="date" name="from_date" value="{{ detection.from_date }}" />
+    </label>
+
+    <label>
+      To date
+      <input type="date" name="to_date" value="{{ detection.to_date }}" />
+    </label>
+
+    <label>
+      Language
+      <select name="language">
+        <option value="en" selected>en</option>
+        <option value="fr">fr</option>
+        <option value="de">de</option>
+        <option value="es">es</option>
+      </select>
+    </label>
+
+    <label class="full-width">
+      Notes
+      <textarea name="notes" rows="3">{{ detection.notes }}</textarea>
+    </label>
+
+    <button type="submit">Find Related News</button>
+  </form>
+{% else %}
+  <p class="muted">No detection result available.</p>
+{% endif %}

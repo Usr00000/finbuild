@@ -1,0 +1,36 @@
+{% if error %}
+  <div class="error"><strong>Error:</strong> {{ error }}</div>
+{% else %}
+  <div class="meta">
+    <div><strong>Symbol:</strong> {{ review.symbol }}</div>
+    <div><strong>Timeframe:</strong> {{ review.timeframe or "—" }}</div>
+    <div><strong>Pattern:</strong> {{ review.pattern or "—" }}</div>
+    <div><strong>From:</strong> {{ payload.from_date or "—" }}</div>
+    <div><strong>To:</strong> {{ payload.to_date or "—" }}</div>
+    <div><strong>Count:</strong> {{ payload.count }}</div>
+  </div>
+
+  {% if review.notes %}
+    <p class="muted"><strong>Review notes:</strong> {{ review.notes }}</p>
+  {% endif %}
+
+  {% if payload.articles and payload.articles|length > 0 %}
+    <ul class="articles">
+      {% for a in payload.articles %}
+        <li class="article">
+          <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">{{ a.title or "Untitled" }}</a>
+          <div class="sub">
+            <span>{{ a.source or "Unknown source" }}</span>
+            <span>•</span>
+            <span>{{ a.published_at or "" }}</span>
+          </div>
+          {% if a.description %}
+            <p class="desc">{{ a.description }}</p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No articles found for that review criteria.</p>
+  {% endif %}
+{% endif %}

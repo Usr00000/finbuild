@@ -1,0 +1,30 @@
+{% if error %}
+  <div class="error"><strong>Quiz Error:</strong> {{ error }}</div>
+{% elif result %}
+  <div class="card">
+    <h5>Quiz Result: {{ result.score }}/{{ result.total }}</h5>
+    <ul class="articles">
+      {% for row in result.results %}
+        <li class="article">
+          <p><strong>Q{{ loop.index }}:</strong> {{ row.question }}</p>
+          {% if row.is_correct %}
+            <p><strong>Status:</strong> Correct</p>
+          {% else %}
+            <p><strong>Status:</strong> Incorrect</p>
+          {% endif %}
+
+          {% if row.was_skipped %}
+            <p class="muted">You skipped this question.</p>
+          {% else %}
+            <p class="muted"><strong>Your answer:</strong> {{ row.selected_text }}</p>
+          {% endif %}
+
+          <p class="muted"><strong>Correct answer:</strong> {{ row.correct_text }}</p>
+          <p class="muted"><strong>Explanation:</strong> {{ row.explanation }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% else %}
+  <div class="error">Could not mark quiz.</div>
+{% endif %}

@@ -1,0 +1,72 @@
+[
+  {
+    "term": "Bull Market",
+    "definition": "A sustained period where prices are generally rising and investor sentiment is optimistic.",
+    "aliases": ["uptrend"],
+    "related": ["Bear Market", "Trend", "Support"],
+    "popularity": 10
+  },
+  {
+    "term": "Bear Market",
+    "definition": "A broad market decline, often defined as a fall of 20% or more from recent highs.",
+    "aliases": ["downtrend"],
+    "related": ["Bull Market", "Trend", "Resistance"],
+    "popularity": 9
+  },
+  {
+    "term": "Support",
+    "definition": "A price level where buying pressure has historically been strong enough to halt declines.",
+    "aliases": ["floor"],
+    "related": ["Resistance", "Breakout", "Trendline"],
+    "popularity": 8
+  },
+  {
+    "term": "Resistance",
+    "definition": "A price level where selling pressure has historically been strong enough to halt advances.",
+    "aliases": ["ceiling"],
+    "related": ["Support", "Breakout", "Trendline"],
+    "popularity": 8
+  },
+  {
+    "term": "Breakout",
+    "definition": "When price moves beyond a defined support or resistance area, often with increased volume.",
+    "aliases": ["price break"],
+    "related": ["Support", "Resistance", "Volume"],
+    "popularity": 7
+  },
+  {
+    "term": "RSI",
+    "definition": "Relative Strength Index, a momentum oscillator ranging from 0 to 100.",
+    "aliases": ["relative strength index"],
+    "related": ["Momentum", "Overbought", "Oversold"],
+    "popularity": 7
+  },
+  {
+    "term": "MACD",
+    "definition": "Moving Average Convergence Divergence, a trend-following momentum indicator.",
+    "aliases": ["moving average convergence divergence"],
+    "related": ["Momentum", "Moving Average", "Signal Line"],
+    "popularity": 6
+  },
+  {
+    "term": "Candlestick",
+    "definition": "A chart style showing open, high, low, and close for each period.",
+    "aliases": ["candle"],
+    "related": ["Doji", "Engulfing", "Trend"],
+    "popularity": 8
+  },
+  {
+    "term": "Doji",
+    "definition": "A candlestick pattern where open and close are very close, signaling indecision.",
+    "aliases": [],
+    "related": ["Candlestick", "Trend Reversal", "Volume"],
+    "popularity": 5
+  },
+  {
+    "term": "Volume",
+    "definition": "The number of shares or contracts traded during a specific period.",
+    "aliases": ["trading volume"],
+    "related": ["Breakout", "Liquidity", "Momentum"],
+    "popularity": 6
+  }
+]

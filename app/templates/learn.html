@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Learning Hub</h2>
+  <p class="muted">
+    New to finance? Start with one concept at a time. We explain it simply,
+    connect it to recent news, then test your understanding with a short quiz.
+  </p>
+
+  <form
+    class="form-learn"
+    hx-get="/partials/learn/concept"
+    hx-target="#learn-results"
+    hx-swap="innerHTML"
+  >
+    <label>
+      Search a finance concept
+      <input type="text" name="q" placeholder="e.g., inflation, bond, dividend" required />
+    </label>
+    <button type="submit">Learn</button>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Popular Concepts</h3>
+  <div
+    id="learn-popular"
+    hx-get="/partials/learn/popular"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+  >
+    <p class="muted">Loading popular beginner topics...</p>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Learning Panel</h3>
+  <div id="learn-results">
+    <p class="muted">Choose a popular concept or search above to begin.</p>
+  </div>
+</section>
+{% endblock %}

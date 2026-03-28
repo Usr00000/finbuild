@@ -1,0 +1,16 @@
+{% if error %}
+  <div class="error"><strong>Error:</strong> {{ error }}</div>
+{% else %}
+  {% if popular and popular|length > 0 %}
+    <div class="term-pills">
+      {% for item in popular %}
+        <form hx-get="/partials/learn/concept" hx-target="#learn-results" hx-swap="innerHTML">
+          <input type="hidden" name="q" value="{{ item.term }}" />
+          <button type="submit" class="pill">{{ item.term }}</button>
+        </form>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No popular concepts available at the moment.</p>
+  {% endif %}
+{% endif %}

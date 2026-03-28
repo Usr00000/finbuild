@@ -1,0 +1,292 @@
+{
+  "inflation": {
+    "term": "Inflation",
+    "short_definition": "Inflation means prices rise over time.",
+    "beginner_explanation": "When inflation goes up, your money buys fewer things than before.",
+    "simple_example": "If a meal costs £8 now and £9 next year, that is inflation.",
+    "why_it_matters": "It affects living costs, wages, savings, and borrowing decisions.",
+    "related_terms": ["interest rate", "recession", "savings"],
+    "news_keywords": ["inflation", "consumer prices", "CPI"],
+    "quiz": [
+      {
+        "question": "What does inflation mean?",
+        "options": ["Prices go up over time", "Prices always go down", "Banks stop lending", "Stocks disappear"],
+        "answer_index": 0,
+        "explanation": "Inflation means the general level of prices rises over time."
+      },
+      {
+        "question": "If inflation rises faster than your pay, what usually happens?",
+        "options": ["You can buy more", "No change", "You can buy less", "Everything gets free"],
+        "answer_index": 2,
+        "explanation": "Higher prices reduce your purchasing power when income does not keep up."
+      },
+      {
+        "question": "Which group often raises rates to fight inflation?",
+        "options": ["Supermarkets", "Central banks", "Sports clubs", "Weather offices"],
+        "answer_index": 1,
+        "explanation": "Central banks often raise interest rates to cool demand and inflation."
+      }
+    ]
+  },
+  "interest rate": {
+    "term": "Interest Rate",
+    "short_definition": "An interest rate is the cost of borrowing money, or reward for saving.",
+    "beginner_explanation": "Higher rates usually make loans more expensive and savings accounts pay more.",
+    "simple_example": "If your bank pays 4% interest, £100 becomes about £104 after one year.",
+    "why_it_matters": "Rates influence mortgages, credit cards, business investment, and inflation.",
+    "related_terms": ["inflation", "savings", "investment"],
+    "news_keywords": ["interest rate", "rate decision", "central bank"],
+    "quiz": [
+      {
+        "question": "A higher interest rate usually makes borrowing...",
+        "options": ["Cheaper", "More expensive", "Impossible", "Unrelated"],
+        "answer_index": 1,
+        "explanation": "Banks typically charge more when policy and market rates are higher."
+      },
+      {
+        "question": "Who often sets policy interest rates?",
+        "options": ["Central bank", "Local gym", "Airline", "Phone provider"],
+        "answer_index": 0,
+        "explanation": "Central banks (like the Bank of England) set policy rates."
+      },
+      {
+        "question": "Higher rates can help reduce...",
+        "options": ["Population", "Inflation pressure", "Weather risk", "Tax forms"],
+        "answer_index": 1,
+        "explanation": "Higher borrowing costs can reduce spending and inflation pressure."
+      }
+    ]
+  },
+  "stock": {
+    "term": "Stock",
+    "short_definition": "A stock is a small ownership share in a company.",
+    "beginner_explanation": "When you buy a stock, you own part of that business.",
+    "simple_example": "Owning 10 shares means you own a tiny piece of that company.",
+    "why_it_matters": "Stock prices can grow (or fall), and some stocks pay dividends.",
+    "related_terms": ["dividend", "market cap", "investment"],
+    "news_keywords": ["shares", "stock market", "equity"],
+    "quiz": [
+      {
+        "question": "Buying a stock means you are...",
+        "options": ["Lending to government", "Owning part of a company", "Buying insurance", "Paying tax"],
+        "answer_index": 1,
+        "explanation": "Stocks represent ownership, not a loan."
+      },
+      {
+        "question": "Stock prices can...",
+        "options": ["Only rise", "Only fall", "Rise or fall", "Stay fixed forever"],
+        "answer_index": 2,
+        "explanation": "Stock prices move with expectations and market conditions."
+      },
+      {
+        "question": "Another word close to stock in this context is...",
+        "options": ["Bond", "Equity", "Invoice", "Coupon"],
+        "answer_index": 1,
+        "explanation": "Equity is commonly used to describe stock ownership."
+      }
+    ]
+  },
+  "bond": {
+    "term": "Bond",
+    "short_definition": "A bond is money you lend to a government or company.",
+    "beginner_explanation": "In return, the borrower usually pays interest and repays later.",
+    "simple_example": "A government bond might pay fixed interest each year until maturity.",
+    "why_it_matters": "Bonds are often used for income and risk balancing in portfolios.",
+    "related_terms": ["interest rate", "investment", "savings"],
+    "news_keywords": ["bond yield", "government bond", "treasury"],
+    "quiz": [
+      {
+        "question": "A bond is closest to...",
+        "options": ["Company ownership", "A loan to an issuer", "A shopping voucher", "A tax refund"],
+        "answer_index": 1,
+        "explanation": "Buying a bond means lending money to the issuer."
+      },
+      {
+        "question": "Many bonds pay...",
+        "options": ["No money ever", "Interest", "Only dividends", "Lottery prizes"],
+        "answer_index": 1,
+        "explanation": "Many bonds pay periodic interest (coupon payments)."
+      },
+      {
+        "question": "Bond prices often react to changes in...",
+        "options": ["Interest rates", "Football scores", "Rainfall", "Movie releases"],
+        "answer_index": 0,
+        "explanation": "Interest-rate moves are a key driver of bond prices and yields."
+      }
+    ]
+  },
+  "dividend": {
+    "term": "Dividend",
+    "short_definition": "A dividend is a cash payment a company gives to shareholders.",
+    "beginner_explanation": "Some companies share part of their profits with investors this way.",
+    "simple_example": "If a company pays 20p per share and you own 100 shares, you receive £20.",
+    "why_it_matters": "Dividends can provide regular income and signal financial strength.",
+    "related_terms": ["stock", "profit", "investment"],
+    "news_keywords": ["dividend", "payout", "shareholder return"],
+    "quiz": [
+      {
+        "question": "Who receives dividends?",
+        "options": ["All customers", "Shareholders", "Suppliers only", "Tax offices only"],
+        "answer_index": 1,
+        "explanation": "Dividends are paid to shareholders."
+      },
+      {
+        "question": "Dividends are usually paid from...",
+        "options": ["Company profits", "Weather data", "Mobile data plans", "Currency printing"],
+        "answer_index": 0,
+        "explanation": "Companies normally fund dividends from profits or retained earnings."
+      },
+      {
+        "question": "A company can decide to...",
+        "options": ["Always pay same dividend forever", "Increase, reduce, or stop dividends", "Pay only in gold", "Ignore shareholders forever"],
+        "answer_index": 1,
+        "explanation": "Dividend policy can change with business performance and priorities."
+      }
+    ]
+  },
+  "market cap": {
+    "term": "Market Cap",
+    "short_definition": "Market cap is the total market value of a company’s shares.",
+    "beginner_explanation": "It is share price multiplied by number of shares.",
+    "simple_example": "If shares are £5 and there are 1 billion shares, market cap is £5 billion.",
+    "why_it_matters": "It helps compare company size and can influence risk and growth expectations.",
+    "related_terms": ["stock", "investment", "profit"],
+    "news_keywords": ["market cap", "valuation", "company value"],
+    "quiz": [
+      {
+        "question": "Market cap is calculated using...",
+        "options": ["Revenue ÷ debt", "Share price × shares outstanding", "Profit × inflation", "Tax × salary"],
+        "answer_index": 1,
+        "explanation": "Market cap equals share price times shares outstanding."
+      },
+      {
+        "question": "Market cap mainly shows...",
+        "options": ["Company size by market value", "How many employees", "Office rent", "Cash in wallet"],
+        "answer_index": 0,
+        "explanation": "It is a market-based measure of company size."
+      },
+      {
+        "question": "A rising share price with same share count usually means...",
+        "options": ["Lower market cap", "Higher market cap", "No change", "No trading"],
+        "answer_index": 1,
+        "explanation": "If shares outstanding stay constant, higher price increases market cap."
+      }
+    ]
+  },
+  "savings": {
+    "term": "Savings",
+    "short_definition": "Savings are money you set aside for future use.",
+    "beginner_explanation": "People save to build security and prepare for planned or unexpected costs.",
+    "simple_example": "Putting £50 each month into a savings account builds an emergency fund.",
+    "why_it_matters": "Savings improve resilience and reduce reliance on high-cost debt.",
+    "related_terms": ["interest rate", "inflation", "investment"],
+    "news_keywords": ["savings rate", "household savings", "deposit rates"],
+    "quiz": [
+      {
+        "question": "A common reason for savings is...",
+        "options": ["Emergency cushion", "To avoid all bills", "To control stock prices", "To remove inflation"],
+        "answer_index": 0,
+        "explanation": "Savings help cover emergencies and planned spending."
+      },
+      {
+        "question": "High inflation can affect savings by...",
+        "options": ["Increasing real value automatically", "Reducing purchasing power", "Doubling it instantly", "Making banks close"],
+        "answer_index": 1,
+        "explanation": "If prices rise faster than interest earned, real value falls."
+      },
+      {
+        "question": "Interest on savings is usually...",
+        "options": ["A reward for deposits", "A penalty fee", "A stock split", "A legal fine"],
+        "answer_index": 0,
+        "explanation": "Banks pay interest as a return for holding deposits."
+      }
+    ]
+  },
+  "investment": {
+    "term": "Investment",
+    "short_definition": "Investment means using money now to try to grow value over time.",
+    "beginner_explanation": "People invest in assets like stocks and bonds for long-term goals.",
+    "simple_example": "Buying a diversified fund monthly for retirement is a common investing approach.",
+    "why_it_matters": "Investing can help beat inflation and build long-term wealth.",
+    "related_terms": ["stock", "bond", "risk"],
+    "news_keywords": ["investment", "portfolio", "asset allocation"],
+    "quiz": [
+      {
+        "question": "Investment usually involves...",
+        "options": ["No risk ever", "Potential return with risk", "Guaranteed doubling", "Only cash withdrawals"],
+        "answer_index": 1,
+        "explanation": "Most investments offer potential returns but involve uncertainty."
+      },
+      {
+        "question": "A long-term goal of investing is often to...",
+        "options": ["Beat inflation", "Stop all taxes", "Fix exchange rates", "Eliminate volatility forever"],
+        "answer_index": 0,
+        "explanation": "Long-term investing often aims to preserve and grow real purchasing power."
+      },
+      {
+        "question": "Diversification means...",
+        "options": ["Putting all money in one asset", "Spreading across different assets", "Avoiding all news", "Only buying bonds"],
+        "answer_index": 1,
+        "explanation": "Diversification reduces concentration risk by spreading exposure."
+      }
+    ]
+  },
+  "recession": {
+    "term": "Recession",
+    "short_definition": "A recession is a period of weak economic activity.",
+    "beginner_explanation": "During recessions, growth slows and unemployment can rise.",
+    "simple_example": "Businesses sell less, hire less, and households reduce spending.",
+    "why_it_matters": "It affects jobs, incomes, business profits, and government policy.",
+    "related_terms": ["inflation", "interest rate", "profit"],
+    "news_keywords": ["recession", "economic slowdown", "GDP contraction"],
+    "quiz": [
+      {
+        "question": "A recession usually means...",
+        "options": ["Stronger growth", "Weaker economic activity", "No unemployment", "No inflation ever"],
+        "answer_index": 1,
+        "explanation": "Recessions are generally linked to weaker output and demand."
+      },
+      {
+        "question": "Which can rise in a recession?",
+        "options": ["Employment certainty", "Unemployment", "Consumer confidence always", "Holiday spending always"],
+        "answer_index": 1,
+        "explanation": "Job losses can increase unemployment during downturns."
+      },
+      {
+        "question": "Governments and central banks may respond with...",
+        "options": ["Policy support", "No action ever", "Banning all trade", "Closing all banks"],
+        "answer_index": 0,
+        "explanation": "They may use fiscal and monetary tools to support demand."
+      }
+    ]
+  },
+  "profit": {
+    "term": "Profit",
+    "short_definition": "Profit is what remains after costs are subtracted from revenue.",
+    "beginner_explanation": "If a business earns more than it spends, it makes a profit.",
+    "simple_example": "Revenue of £10,000 and costs of £8,000 gives £2,000 profit.",
+    "why_it_matters": "Profit supports growth, dividends, hiring, and business stability.",
+    "related_terms": ["dividend", "stock", "investment"],
+    "news_keywords": ["earnings", "profit", "results"],
+    "quiz": [
+      {
+        "question": "Profit equals...",
+        "options": ["Revenue minus costs", "Costs minus revenue", "Assets minus debt", "Price minus tax"],
+        "answer_index": 0,
+        "explanation": "Basic profit is revenue less expenses."
+      },
+      {
+        "question": "Higher profit can allow a company to...",
+        "options": ["Invest or pay dividends", "Ignore all customers", "Remove all expenses", "Avoid all competition"],
+        "answer_index": 0,
+        "explanation": "Profits can be reinvested or distributed to shareholders."
+      },
+      {
+        "question": "A profit warning usually means...",
+        "options": ["Expected earnings may be weaker", "Guaranteed growth", "No business risk", "Permanent success"],
+        "answer_index": 0,
+        "explanation": "A profit warning signals expected earnings below prior expectations."
+      }
+    ]
+  }
+}
