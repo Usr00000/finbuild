@@ -18,9 +18,14 @@
     <ul class="articles">
       {% for a in payload.articles %}
         <li class="article">
-          <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer">
-            {{ a.title or "Untitled" }}
-          </a>
+          <form action="/article" method="get" class="article-link-form">
+            <input type="hidden" name="title" value="{{ a.title or 'Untitled' }}" />
+            <input type="hidden" name="source" value="{{ a.source or 'Unknown source' }}" />
+            <input type="hidden" name="published_at" value="{{ a.published_at or '' }}" />
+            <input type="hidden" name="description" value="{{ a.description or '' }}" />
+            <input type="hidden" name="url" value="{{ a.url or '' }}" />
+            <button type="submit" class="article-link-btn">{{ a.title or "Untitled" }}</button>
+          </form>
           <div class="sub">
             <span>{{ a.source or "Unknown source" }}</span>
             <span>•</span>

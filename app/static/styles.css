@@ -25,6 +25,19 @@ button:hover { opacity: 0.92; }
 .articles { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
 .article a { font-weight: 600; color: #111; text-decoration: none; }
 .article a:hover { text-decoration: underline; }
+.article-link-form { margin: 0; }
+.article-link-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 16px;
+  text-align: left;
+}
+.article-link-btn:hover { text-decoration: underline; }
 .sub { display: flex; gap: 8px; color: #666; font-size: 13px; margin-top: 4px; }
 .desc { margin: 8px 0 0; color: #333; }
 
@@ -47,6 +60,13 @@ button:hover { opacity: 0.92; }
 .quiz-block { border: 1px solid #e1e4ef; border-radius: 10px; padding: 10px; margin: 0; }
 .quiz-option { display: flex; gap: 8px; margin: 6px 0; font-size: 14px; }
 .quiz-results-panel { margin-top: 10px; }
+.article-reader-card { display: grid; gap: 14px; }
+.article-reader-header h2 { margin: 0; }
+.article-reader-section { border-top: 1px solid #eceff5; padding-top: 12px; }
+.article-reader-section h3 { margin: 0 0 8px; font-size: 18px; }
+.article-learning-panel { border: 1px dashed #cfd7ea; border-radius: 10px; padding: 12px; background: #f8faff; }
+.article-term-link { color: #1a2a52; text-decoration: underline; font-weight: 600; }
+.article-term-link:hover { color: #0f1d3c; }
 
 @media (max-width: 900px) {
   .form { grid-template-columns: 1fr; }

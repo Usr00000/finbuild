@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import difflib
+import html
 import json
+import re
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote_plus
 
 from fastapi import HTTPException
 
@@ -121,6 +124,109 @@ def get_popular_concepts() -> List[Dict[str, str]]:
         if concept:
             popular.append({"key": _normalize(key), "term": str(concept.get("term", key.title()))})
     return popular
+
+
+def get_related_concepts_for_text(title: str, description: str, limit: int = 5) -> List[Dict[str, Any]]:
+    text = _normalize(f"{title} {description}")
+    if not text:
+        return []
+
+    content = load_learning_content()
+    scored: List[Dict[str, Any]] = []
+
+    for key, concept in content.items():
+        term = _normalize(str(concept.get("term", "")))
+        related_terms = [_normalize(str(t)) for t in concept.get("related_terms", []) if str(t).strip()]
+        keywords = [_normalize(str(k)) for k in concept.get("news_keywords", []) if str(k).strip()]
+
+        score = 0
+        matched: List[str] = []
+
+        if term and term in text:
+            score += 5
+            matched.append(term)
+
+        for token in related_terms + keywords:
+            if token and token in text:
+                score += 2
+                matched.append(token)
+
+        if score > 0:
+            scored.append(
+                {
+                    "key": key,
+                    "term": concept.get("term", key),
+                    "score": score,
+                    "matches": list(dict.fromkeys(matched))[:3],
+                }
+            )
+
+    ranked = sorted(scored, key=lambda c: (int(c["score"]), str(c["term"]).lower()), reverse=True)
+    return ranked[:limit]
+
+
+def link_finance_terms_in_text(text: str, panel_target_id: str = "#article-learning-panel") -> tuple[str, List[Dict[str, str]]]:
+    """
+    Convert known finance terms found in text into HTMX-enabled links.
+    Matching is case-insensitive and longer phrases are matched first.
+    Returns (html_with_links, matched_concepts).
+    """
+    if not text:
+        return "", []
+
+    content = load_learning_content()
+    # term map: normalized term -> canonical concept payload
+    term_map: Dict[str, Dict[str, str]] = {}
+    for key, concept in content.items():
+        term = str(concept.get("term", "")).strip()
+        if not term:
+            continue
+        normalized_term = _normalize(term)
+        if normalized_term:
+            term_map[normalized_term] = {"key": key, "term": term}
+
+    if not term_map:
+        return html.escape(text), []
+
+    # Longer phrases first to prioritize terms like "interest rate" over "rate".
+    sorted_terms = sorted(term_map.keys(), key=len, reverse=True)
+    pattern = re.compile(
+        r"(?<![A-Za-z0-9])(" + "|".join(re.escape(t) for t in sorted_terms) + r")(?![A-Za-z0-9])",
+        flags=re.IGNORECASE,
+    )
+
+    lower_text = text.lower()
+    parts: List[str] = []
+    last = 0
+    matched_keys: set[str] = set()
+
+    for match in pattern.finditer(lower_text):
+        start, end = match.span()
+        matched_slice = text[start:end]
+        normalized_hit = _normalize(matched_slice)
+        concept = term_map.get(normalized_hit)
+        if not concept:
+            continue
+
+        parts.append(html.escape(text[last:start]))
+        q_param = quote_plus(concept["term"])
+        link_html = (
+            f'<a class="article-term-link" href="/learn" '
+            f'hx-get="/partials/learn/concept?q={q_param}" '
+            f'hx-target="{html.escape(panel_target_id)}" '
+            f'hx-swap="innerHTML">{html.escape(matched_slice)}</a>'
+        )
+        parts.append(link_html)
+        matched_keys.add(concept["key"])
+        last = end
+
+    parts.append(html.escape(text[last:]))
+
+    matched_concepts = [
+        {"key": content[key].get("key", key), "term": str(content[key].get("term", key))}
+        for key in sorted(matched_keys)
+    ]
+    return "".join(parts), matched_concepts
 
 
 def score_article_relevance(article: Dict[str, Any], keywords: List[str], term: str) -> int:

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card article-reader-card">
+  <div class="article-reader-header">
+    <p class="muted">Article Reader</p>
+    <h2>{{ article_title }}</h2>
+    <div class="sub">
+      <span>{{ article_source }}</span>
+      <span>•</span>
+      <span>{{ article_published_at }}</span>
+    </div>
+  </div>
+
+  <section class="article-reader-section">
+    <h3>Snippet</h3>
+    <p class="desc">{{ article_linked_snippet_html | safe }}</p>
+    <p class="muted">Detected finance terms in the snippet are clickable.</p>
+  </section>
+
+  <section class="article-reader-section">
+    <h3>Learning Focus</h3>
+    <p class="muted">
+      Start by identifying the core money concept in this article. Ask: what changed, who is affected, and why?
+      Then open a related concept below to build context before reading the full piece.
+    </p>
+  </section>
+
+  <section class="article-reader-section">
+    <h3>Related Concepts</h3>
+    {% if related_concepts and related_concepts|length > 0 %}
+      <div class="term-pills">
+        {% for concept in related_concepts %}
+          <form
+            hx-get="/partials/learn/concept"
+            hx-target="#article-learning-panel"
+            hx-swap="innerHTML"
+          >
+            <input type="hidden" name="q" value="{{ concept.term }}" />
+            <button type="submit" class="pill">{{ concept.term }}</button>
+          </form>
+        {% endfor %}
+      </div>
+      <p class="muted">Concepts are suggested from title + snippet keyword matches.</p>
+    {% else %}
+      <p class="muted">No clear concept matches found yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="article-reader-section">
+    <h3>Context Panel</h3>
+    <div id="article-learning-panel" class="article-learning-panel">
+      <p class="muted">
+        Placeholder for contextual learning content. In the next step, selected concepts will load here via HTMX.
+      </p>
+    </div>
+  </section>
+
+  <section class="article-reader-section">
+    {% if article_url %}
+      <a href="{{ article_url }}" target="_blank" rel="noopener noreferrer">
+        <button type="button">Open full original article</button>
+      </a>
+    {% else %}
+      <div class="error">Original article link is unavailable.</div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}
