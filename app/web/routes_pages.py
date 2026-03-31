@@ -42,9 +42,10 @@ async def article_page(
             description=description or "",
             limit=5,
         )
-        linked_snippet_html, snippet_matched_concepts = link_finance_terms_in_text(
+        linked_snippet_html, snippet_matched_concepts = await link_finance_terms_in_text(
             text=description or "",
             panel_target_id="#article-learning-panel",
+            context_text=f"{title or ''} {description or ''}",
         )
         if not linked_snippet_html:
             linked_snippet_html = "No description available."
@@ -68,7 +69,6 @@ async def article_page(
             "article_title": title or "Untitled",
             "article_source": source or "Unknown source",
             "article_published_at": published_at or "Unknown date",
-            "article_description": description or "No description available.",
             "article_linked_snippet_html": linked_snippet_html,
             "article_url": url or "",
             "related_concepts": merged_related_concepts,

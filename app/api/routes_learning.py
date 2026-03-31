@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.services.learning_service import (
     LearningContentError,
-    get_concept,
+    get_concept_with_fallback,
     get_popular_concepts,
     get_related_news_for_concept,
     mark_quiz,
@@ -67,7 +67,7 @@ async def learn_concept_partial(request: Request, q: Optional[str] = None):
         )
 
     try:
-        concept = get_concept(query)
+        concept = await get_concept_with_fallback(query)
         if not concept:
             suggestions = suggest_similar_terms(query)
             return templates.TemplateResponse(

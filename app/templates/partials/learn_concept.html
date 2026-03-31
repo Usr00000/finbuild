@@ -17,6 +17,11 @@
     <section>
       <h4>{{ concept.term }}</h4>
       <p><strong>Definition:</strong> {{ concept.short_definition }}</p>
+      {% if concept.source == "wikipedia" %}
+        <p class="muted">
+          Source: Wikipedia fallback{% if concept.wikipedia_url %} (<a href="{{ concept.wikipedia_url }}" target="_blank" rel="noopener noreferrer">view source</a>){% endif %}.
+        </p>
+      {% endif %}
     </section>
 
     <section>

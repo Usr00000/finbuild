@@ -12,6 +12,7 @@ dependencies = [
     "python-multipart>=0.0.20",
     "python-dotenv>=1.2.1",
     "uvicorn>=0.40.0",
+    "spacy>=3.8.7",
     "opencv-python>=4.13.0.92",
     "numpy>=2.4.2",
     "pytesseract>=0.3.13",

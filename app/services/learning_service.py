@@ -7,12 +7,14 @@ import re
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.parse import quote_plus
+from urllib.parse import quote, quote_plus
 
+import httpx
 from fastapi import HTTPException
 
 from app.core.cache import cache_get, cache_set
 from app.core.config import CACHE_TTL_SECONDS
+from app.services.nlp_service import extract_candidate_terms
 from app.services.news_service import get_news_payload
 
 LEARNING_CONTENT_PATH = Path("app/data/learning_content.json")
@@ -29,6 +31,71 @@ POPULAR_CONCEPT_KEYS = [
     "profit",
 ]
 LEARNING_NEWS_TTL_SECONDS = max(CACHE_TTL_SECONDS, 600)
+WIKI_VALIDATE_TTL_SECONDS = max(CACHE_TTL_SECONDS, 1800)
+WIKI_TIMEOUT = httpx.Timeout(6.0, connect=3.0)
+WIKI_HEADERS = {
+    "User-Agent": "FinBuild/1.0 (educational-learning-module; contact: local-app)",
+    "Accept": "application/json",
+}
+FINANCE_SIGNAL_TERMS = {
+    "market",
+    "stock",
+    "stocks",
+    "share",
+    "shares",
+    "bond",
+    "bonds",
+    "yield",
+    "yields",
+    "revenue",
+    "earnings",
+    "profit",
+    "investment",
+    "gdp",
+    "roi",
+    "inflation",
+    "interest",
+    "rate",
+    "rates",
+    "economy",
+    "economic",
+    "capital",
+    "returns",
+    "return",
+    "valuation",
+    "margin",
+    "dividend",
+    "portfolio",
+    "debt",
+    "asset",
+    "assets",
+    "fiscal",
+    "monetary",
+    "ebitda",
+    "eps",
+    "ipo",
+    "cpi",
+    "etf",
+    "quantitative",
+    "easing",
+    "credit",
+    "swap",
+    "default",
+}
+KNOWN_FINANCE_ACRONYMS = {"GDP", "ROI", "EPS", "IPO", "CPI", "ETF", "P/E", "EBITDA", "EBIT"}
+NOISE_PHRASES = {"behind the scenes", "murder rate"}
+NOISE_TOKENS = {"murder"}
+FINANCE_ACRONYM_WIKI_TITLES = {
+    "GDP": "Gross_domestic_product",
+    "ROI": "Return_on_investment",
+    "EPS": "Earnings_per_share",
+    "IPO": "Initial_public_offering",
+    "CPI": "Consumer_price_index",
+    "ETF": "Exchange-traded_fund",
+    "P/E": "Price%E2%80%93earnings_ratio",
+    "EBITDA": "EBITDA",
+    "EBIT": "EBIT",
+}
 
 
 class LearningContentError(RuntimeError):
@@ -126,6 +193,398 @@ def get_popular_concepts() -> List[Dict[str, str]]:
     return popular
 
 
+def _resolve_local_concept_by_term(term: str) -> Optional[Dict[str, Any]]:
+    return get_concept(term)
+
+
+def _collect_local_terms_found_in_text(text: str) -> List[Dict[str, str]]:
+    """
+    Find local curated concept terms present in the snippet using word boundaries.
+    This guarantees local terms (e.g. 'profit', 'bond', 'interest rate') remain linkable
+    even when NLP candidate extraction is noisy.
+    """
+    content = load_learning_content()
+    lower_text = (text or "").lower()
+    if not lower_text:
+        return []
+
+    matches: List[Dict[str, str]] = []
+    for key, concept in content.items():
+        term = str(concept.get("term", "")).strip()
+        normalized_term = _normalize(term)
+        if not normalized_term:
+            continue
+        pattern = re.compile(
+            r"(?<![A-Za-z0-9])" + re.escape(normalized_term) + r"(?![A-Za-z0-9])",
+            flags=re.IGNORECASE,
+        )
+        if pattern.search(lower_text):
+            matches.append(
+                {
+                    "key": key,
+                    "term": term or normalized_term,
+                }
+            )
+
+    # Longest phrases first so 'interest rate' is chosen before 'rate'.
+    return sorted(matches, key=lambda m: len(_normalize(m["term"])), reverse=True)
+
+
+def _should_validate_non_local_candidate(candidate: str, original_text: str) -> bool:
+    """
+    Guardrail for Wikipedia validation calls.
+    Keep useful finance phrases/acronyms while avoiding generic single words.
+    """
+    normalized = _normalize(candidate)
+    if not normalized:
+        return False
+    words = normalized.split()
+    if len(words) >= 2:
+        return True
+
+    # Keep acronyms from original text (e.g. EBITDA, EPS).
+    acronym_pattern = re.compile(rf"\b{re.escape(candidate)}\b")
+    if candidate.isupper() and acronym_pattern.search(original_text):
+        return True
+
+    # Allow single-word finance signals often used in snippets.
+    finance_signals = {
+        "profit",
+        "revenue",
+        "bond",
+        "yield",
+        "yields",
+        "inflation",
+        "recession",
+        "dividend",
+        "ebitda",
+        "earnings",
+        "equity",
+        "debt",
+        "liquidity",
+        "volatility",
+    }
+    return normalized in finance_signals
+
+
+def _normalize_acronym(term: str) -> str:
+    return (term or "").strip().upper().replace(".", "")
+
+
+def _is_known_finance_acronym(term: str) -> bool:
+    normalized = _normalize_acronym(term)
+    known = {a.replace(".", "") for a in KNOWN_FINANCE_ACRONYMS}
+    return normalized in known
+
+
+def _contains_finance_signal(text: str) -> bool:
+    normalized = _normalize(text)
+    if not normalized:
+        return False
+    tokens = set(re.findall(r"[a-z0-9/]+", normalized))
+    strong_signals = FINANCE_SIGNAL_TERMS - {"rate", "rates", "return", "returns", "capital"}
+    return any(signal in tokens or signal in normalized for signal in strong_signals)
+
+
+def _is_obvious_noise_candidate(term: str) -> bool:
+    normalized = _normalize(term)
+    if normalized in NOISE_PHRASES:
+        return True
+    tokens = set(re.findall(r"[a-z0-9/]+", normalized))
+    return any(token in NOISE_TOKENS for token in tokens)
+
+
+def _is_finance_relevant_candidate(term: str, context_text: str) -> bool:
+    if _is_obvious_noise_candidate(term):
+        return False
+    if _is_known_finance_acronym(term):
+        return True
+    normalized = _normalize(term)
+    if not normalized:
+        return False
+    if _contains_finance_signal(normalized):
+        return True
+    return False
+
+
+def _is_finance_relevant_wiki_payload(payload: Dict[str, Any], context_text: str) -> bool:
+    if not payload.get("valid"):
+        return False
+    title = str(payload.get("title", ""))
+    summary = str(payload.get("summary", ""))
+    combined = f"{title} {summary}"
+    if _is_obvious_noise_candidate(title):
+        return False
+    if _is_known_finance_acronym(str(payload.get("term", ""))):
+        return True
+    if _contains_finance_signal(combined):
+        return True
+    return False
+
+
+def _preferred_wiki_titles_for_term(term: str) -> List[str]:
+    normalized = _normalize(term)
+    candidates: List[str] = []
+    acronym = _normalize_acronym(term)
+    mapped = FINANCE_ACRONYM_WIKI_TITLES.get(acronym)
+    if mapped:
+        candidates.append(mapped)
+
+    for variant in _candidate_variants(normalized):
+        if not variant:
+            continue
+        candidates.append(variant.replace(" ", "_"))
+
+    seen = set()
+    ordered: List[str] = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            ordered.append(c)
+    return ordered
+
+
+def _rank_nlp_candidates(candidates: List[str], original_text: str) -> List[str]:
+    """
+    Prioritize high-signal finance phrases/acronyms so they are evaluated
+    before noisy long chunks when max_terms is reached.
+    """
+    preferred = {
+        "quantitative easing",
+        "bond yield",
+        "bond yields",
+        "yield curve",
+        "ebitda",
+        "earnings per share",
+        "credit default swap",
+        "gdp",
+        "roi",
+        "revenue",
+        "eps",
+        "ipo",
+        "cpi",
+        "etf",
+        "p/e",
+    }
+    original_upper = original_text or ""
+
+    def _score(candidate: str) -> tuple[int, int, int]:
+        normalized = _normalize(candidate)
+        words = normalized.split()
+        is_preferred = 1 if normalized in preferred else 0
+        is_acronym = 1 if candidate.isupper() and len(candidate) >= 3 and candidate in original_upper else 0
+        # Fewer words are often cleaner terms than long noisy chunks.
+        compactness = -len(words)
+        return (is_preferred, is_acronym, compactness)
+
+    return sorted(candidates, key=_score, reverse=True)
+
+
+def _extract_text_from_html_paragraph(page_html: str) -> str:
+    first_p = re.search(r"<p>(.*?)</p>", page_html, flags=re.IGNORECASE | re.DOTALL)
+    if not first_p:
+        return ""
+    raw = re.sub(r"<[^>]+>", " ", first_p.group(1))
+    cleaned = re.sub(r"\s+", " ", raw).strip()
+    return html.unescape(cleaned)
+
+
+async def _validate_with_wiki_page_fallback(term: str) -> Dict[str, Any]:
+    """
+    Fallback when Wikipedia API endpoints are unavailable (e.g. 403 in some environments).
+    Validates by resolving /wiki/<term> page and extracting a minimal summary.
+    """
+    if not _normalize(term):
+        return {"valid": False, "term": term, "title": term, "summary": "", "url": ""}
+
+    for page_title in _preferred_wiki_titles_for_term(term):
+        page_url = f"https://en.wikipedia.org/wiki/{quote(page_title)}"
+        try:
+            async with httpx.AsyncClient(
+                timeout=WIKI_TIMEOUT,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (compatible; FinBuildBot/1.0; +https://example.com/bot)",
+                    "Accept": "text/html",
+                },
+                follow_redirects=True,
+            ) as client:
+                resp = await client.get(page_url)
+            if resp.status_code != 200:
+                continue
+
+            final_url = str(resp.url)
+            # Ignore non-article pages.
+            if any(marker in final_url for marker in ("/wiki/Special:", "/wiki/Help:", "/wiki/File:")):
+                continue
+
+            page_html = resp.text or ""
+            title_match = re.search(r"<title>(.*?)</title>", page_html, flags=re.IGNORECASE | re.DOTALL)
+            raw_title = title_match.group(1).strip() if title_match else term
+            title = raw_title.replace(" - Wikipedia", "").strip()
+            summary = _extract_text_from_html_paragraph(page_html)
+            if not _contains_finance_signal(f"{title} {summary}") and not _is_known_finance_acronym(term):
+                continue
+
+            return {
+                "valid": True,
+                "term": term,
+                "title": title or variant,
+                "summary": summary,
+                "url": final_url,
+            }
+        except Exception:
+            continue
+
+    return {"valid": False, "term": term, "title": term, "summary": "", "url": ""}
+
+
+async def validate_term_with_wikipedia(term: str) -> Dict[str, Any]:
+    """
+    Wikipedia validation layer for terms not present in local curated concepts.
+    Cached to avoid repeated network calls.
+    """
+    normalized_term = _normalize(term)
+    if not normalized_term:
+        return {"valid": False, "term": term, "title": term, "summary": "", "url": ""}
+
+    cache_key = ("wiki_validate", normalized_term)
+    cached = cache_get(cache_key)
+    if cached:
+        return cached["payload"]
+
+    summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(term.strip())}"
+    payload: Dict[str, Any] = {"valid": False, "term": term, "title": term, "summary": "", "url": ""}
+    try:
+        async with httpx.AsyncClient(timeout=WIKI_TIMEOUT, headers=WIKI_HEADERS) as client:
+            resp = await client.get(summary_url)
+        if resp.status_code == 200:
+            data = resp.json()
+            summary = str(data.get("extract", "")).strip()
+            title = str(data.get("title", term)).strip() or term
+            canonical_url = (
+                (data.get("content_urls") or {})
+                .get("desktop", {})
+                .get("page", "")
+            )
+            # Accept direct pages; disambiguation pages will use search fallback below.
+            if summary and data.get("type") != "disambiguation":
+                payload = {
+                    "valid": True,
+                    "term": term,
+                    "title": title,
+                    "summary": summary,
+                    "url": canonical_url,
+                }
+
+            if not payload["valid"]:
+                # Fallback: use Wikipedia search API and resolve top title to summary page.
+                search_url = "https://en.wikipedia.org/w/api.php"
+                search_params = {
+                    "action": "query",
+                    "list": "search",
+                    "srsearch": term,
+                    "utf8": "1",
+                    "format": "json",
+                    "srlimit": 1,
+                }
+                async with httpx.AsyncClient(timeout=WIKI_TIMEOUT, headers=WIKI_HEADERS) as client:
+                    search_resp = await client.get(search_url, params=search_params)
+                if search_resp.status_code == 200:
+                    search_data = search_resp.json()
+                    hits = ((search_data.get("query") or {}).get("search") or [])
+                    if hits:
+                        top_title = str(hits[0].get("title", "")).strip()
+                        if top_title:
+                            summary_url_2 = f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(top_title)}"
+                            async with httpx.AsyncClient(timeout=WIKI_TIMEOUT, headers=WIKI_HEADERS) as client:
+                                summary_resp_2 = await client.get(summary_url_2)
+                            if summary_resp_2.status_code == 200:
+                                data2 = summary_resp_2.json()
+                                summary2 = str(data2.get("extract", "")).strip()
+                                if summary2:
+                                    payload = {
+                                        "valid": True,
+                                        "term": term,
+                                        "title": str(data2.get("title", top_title)).strip() or top_title,
+                                        "summary": summary2,
+                                        "url": (
+                                            (data2.get("content_urls") or {})
+                                            .get("desktop", {})
+                                            .get("page", "")
+                                        ),
+                                    }
+    except Exception:
+        payload = {"valid": False, "term": term, "title": term, "summary": "", "url": ""}
+
+    if not payload.get("valid"):
+        fallback_payload = await _validate_with_wiki_page_fallback(term)
+        if fallback_payload.get("valid"):
+            payload = fallback_payload
+
+    cache_set(cache_key, {"payload": payload}, ttl_seconds=WIKI_VALIDATE_TTL_SECONDS)
+    return payload
+
+
+def _candidate_variants(term: str) -> List[str]:
+    """
+    Generate simple variants to improve local/wiki matching for plural phrases.
+    Example: 'bond yields' -> ['bond yields', 'bond yield'].
+    """
+    t = (term or "").strip()
+    if not t:
+        return []
+    variants = [t]
+    words = t.split()
+    if words:
+        last = words[-1]
+        if len(last) > 3 and last.lower().endswith("s"):
+            singular_words = words[:-1] + [last[:-1]]
+            variants.append(" ".join(singular_words))
+    # Deduplicate preserving order.
+    seen = set()
+    out: List[str] = []
+    for v in variants:
+        nv = _normalize(v)
+        if nv and nv not in seen:
+            seen.add(nv)
+            out.append(v)
+    return out
+
+
+async def get_concept_with_fallback(term: str) -> Optional[Dict[str, Any]]:
+    """
+    Local curated concept first. If missing, try Wikipedia fallback concept object.
+    """
+    local = get_concept(term)
+    if local:
+        payload = dict(local)
+        payload["source"] = "local"
+        return payload
+
+    wiki = await validate_term_with_wikipedia(term)
+    if not wiki.get("valid"):
+        return None
+
+    summary = str(wiki.get("summary", "")).strip()
+    first_sentence = summary.split(".")[0].strip() + "." if "." in summary else summary
+    wiki_term = str(wiki.get("title") or term).strip()
+    normalized_key = _normalize(wiki_term)
+
+    return {
+        "key": normalized_key,
+        "term": wiki_term,
+        "short_definition": first_sentence or f"{wiki_term} is a finance-related term.",
+        "beginner_explanation": summary or f"{wiki_term} appears in finance news and market discussions.",
+        "simple_example": f"You might see {wiki_term} mentioned when explaining market moves or company performance.",
+        "why_it_matters": f"Understanding {wiki_term} helps connect financial news to practical decisions.",
+        "related_terms": [],
+        "news_keywords": [wiki_term],
+        "quiz": [],
+        "source": "wikipedia",
+        "wikipedia_url": wiki.get("url", ""),
+    }
+
+
 def get_related_concepts_for_text(title: str, description: str, limit: int = 5) -> List[Dict[str, Any]]:
     text = _normalize(f"{title} {description}")
     if not text:
@@ -165,7 +624,12 @@ def get_related_concepts_for_text(title: str, description: str, limit: int = 5) 
     return ranked[:limit]
 
 
-def link_finance_terms_in_text(text: str, panel_target_id: str = "#article-learning-panel") -> tuple[str, List[Dict[str, str]]]:
+async def link_finance_terms_in_text(
+    text: str,
+    panel_target_id: str = "#article-learning-panel",
+    max_terms: int = 8,
+    context_text: Optional[str] = None,
+) -> tuple[str, List[Dict[str, str]]]:
     """
     Convert known finance terms found in text into HTMX-enabled links.
     Matching is case-insensitive and longer phrases are matched first.
@@ -174,22 +638,72 @@ def link_finance_terms_in_text(text: str, panel_target_id: str = "#article-learn
     if not text:
         return "", []
 
-    content = load_learning_content()
-    # term map: normalized term -> canonical concept payload
-    term_map: Dict[str, Dict[str, str]] = {}
-    for key, concept in content.items():
-        term = str(concept.get("term", "")).strip()
-        if not term:
-            continue
-        normalized_term = _normalize(term)
-        if normalized_term:
-            term_map[normalized_term] = {"key": key, "term": term}
+    accepted: Dict[str, Dict[str, str]] = {}
+    accepted_keys: set[str] = set()
+    finance_context = f"{context_text or ''} {text}"
 
-    if not term_map:
+    # Phase 1: guaranteed local concept linking from text scan.
+    local_hits = _collect_local_terms_found_in_text(text)
+    for hit in local_hits:
+        normalized_hit = _normalize(hit["term"])
+        if normalized_hit and normalized_hit not in accepted:
+            if hit["key"] in accepted_keys:
+                continue
+            accepted[normalized_hit] = {"key": hit["key"], "term": hit["term"]}
+            accepted_keys.add(hit["key"])
+        if len(accepted) >= max_terms:
+            break
+
+    # Phase 2: NLP candidate extraction for additional non-local terms.
+    raw_candidates = extract_candidate_terms(text, limit=40)
+    for candidate in _rank_nlp_candidates(raw_candidates, text):
+        normalized_candidate = _normalize(candidate)
+        if not normalized_candidate or normalized_candidate in accepted:
+            continue
+
+        for variant in _candidate_variants(candidate):
+            if _is_obvious_noise_candidate(variant):
+                continue
+
+            # Local curated core check first.
+            local_concept = _resolve_local_concept_by_term(variant)
+            if local_concept:
+                local_key = str(local_concept.get("key", normalized_candidate))
+                if local_key in accepted_keys:
+                    continue
+                accepted[normalized_candidate] = {
+                    "key": local_key,
+                    "term": str(local_concept.get("term", variant)),
+                }
+                accepted_keys.add(local_key)
+                break
+
+            # Wikipedia validation fallback for non-local terms.
+            if not _should_validate_non_local_candidate(variant, text):
+                continue
+            if not _is_finance_relevant_candidate(variant, finance_context):
+                continue
+            wiki = await validate_term_with_wikipedia(variant)
+            if wiki.get("valid") and _is_finance_relevant_wiki_payload(wiki, finance_context):
+                wiki_term = str(wiki.get("title", variant))
+                wiki_key = _normalize(wiki_term)
+                if wiki_key in accepted_keys:
+                    continue
+                accepted[normalized_candidate] = {
+                    "key": wiki_key,
+                    "term": wiki_term,
+                }
+                accepted_keys.add(wiki_key)
+                break
+
+        if len(accepted) >= max_terms:
+            break
+
+    if not accepted:
         return html.escape(text), []
 
-    # Longer phrases first to prioritize terms like "interest rate" over "rate".
-    sorted_terms = sorted(term_map.keys(), key=len, reverse=True)
+    # Prioritize longer phrases first for linking.
+    sorted_terms = sorted(accepted.keys(), key=len, reverse=True)
     pattern = re.compile(
         r"(?<![A-Za-z0-9])(" + "|".join(re.escape(t) for t in sorted_terms) + r")(?![A-Za-z0-9])",
         flags=re.IGNORECASE,
@@ -199,12 +713,15 @@ def link_finance_terms_in_text(text: str, panel_target_id: str = "#article-learn
     parts: List[str] = []
     last = 0
     matched_keys: set[str] = set()
+    used_terms: set[str] = set()
 
     for match in pattern.finditer(lower_text):
         start, end = match.span()
         matched_slice = text[start:end]
         normalized_hit = _normalize(matched_slice)
-        concept = term_map.get(normalized_hit)
+        if normalized_hit in used_terms:
+            continue
+        concept = accepted.get(normalized_hit)
         if not concept:
             continue
 
@@ -218,14 +735,18 @@ def link_finance_terms_in_text(text: str, panel_target_id: str = "#article-learn
         )
         parts.append(link_html)
         matched_keys.add(concept["key"])
+        used_terms.add(normalized_hit)
         last = end
 
     parts.append(html.escape(text[last:]))
 
-    matched_concepts = [
-        {"key": content[key].get("key", key), "term": str(content[key].get("term", key))}
-        for key in sorted(matched_keys)
-    ]
+    matched_concepts: List[Dict[str, str]] = []
+    seen_keys: set[str] = set()
+    for value in accepted.values():
+        key = value.get("key")
+        if key in matched_keys and key not in seen_keys:
+            matched_concepts.append(value)
+            seen_keys.add(key)
     return "".join(parts), matched_concepts
 
 
