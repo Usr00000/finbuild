@@ -54,7 +54,7 @@ async def article_page(
         linked_snippet_html = description or "No description available."
         snippet_matched_concepts = []
 
-    # Merge both concept sources without duplicates (term links + scoring-based related concepts).
+    # Merge concept sources (inline matches + scored related concepts) without duplicates.
     merged_by_key = {c["key"]: c for c in related_concepts if c.get("key")}
     for c in snippet_matched_concepts:
         if c.get("key") and c["key"] not in merged_by_key:
@@ -80,19 +80,18 @@ async def article_page(
 async def news_results_partial(
     request: Request,
     q: Optional[str] = None,
-    from_date: Optional[str] = None,   # 👈 accept raw string
+    from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     language: str = "en",
     page: int = 1,
 ):
-    # Convert from_date safely:
+    # Parse date inputs from the form.
     parsed_from_date: Optional[date] = None
     parsed_to_date: Optional[date] = None
 
-    # from_date will be "" when user leaves the date input empty
     if from_date:
         try:
-            parsed_from_date = date.fromisoformat(from_date)  # expects "YYYY-MM-DD"
+            parsed_from_date = date.fromisoformat(from_date)
         except ValueError:
             return templates.TemplateResponse(
                 "partials/news_results.html",
@@ -104,7 +103,7 @@ async def news_results_partial(
             )
     if to_date:
         try:
-            parsed_to_date = date.fromisoformat(to_date)  # expects "YYYY-MM-DD"
+            parsed_to_date = date.fromisoformat(to_date)
         except ValueError:
             return templates.TemplateResponse(
                 "partials/news_results.html",

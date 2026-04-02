@@ -101,8 +101,8 @@ def _is_reasonable_candidate(text: str) -> bool:
 
 def extract_candidate_terms(text: str, limit: int = 30) -> List[str]:
     """
-    NLP candidate extraction using spaCy noun chunks + selected entities.
-    Falls back to regex noun-phrase-like chunks when spaCy/model is unavailable.
+    Extract likely finance terms from free text.
+    Uses spaCy when available, then adds regex/acronym fallbacks.
     """
     normalized_text = (text or "").strip()
     if not normalized_text:
@@ -119,19 +119,19 @@ def extract_candidate_terms(text: str, limit: int = 30) -> List[str]:
             try:
                 _NLP = spacy.load("en_core_web_sm")
             except Exception:
-                # Try a blank pipeline if the full model isn't installed.
+                # Keep running even if the small English model is missing.
                 _NLP = spacy.blank("en")
 
         doc = _NLP(normalized_text)
 
-        # Noun chunks are typically strong finance term candidates.
+        # Noun chunks usually give better phrase candidates.
         if doc.has_annotation("DEP"):
             for chunk in doc.noun_chunks:
                 c = _normalize_candidate(chunk.text)
                 if _is_reasonable_candidate(c):
                     spacy_candidates.append(c)
 
-        # Keep entity classes that often include finance concepts.
+        # Keep entity types that often show up in finance writing.
         for ent in doc.ents:
             if ent.label_ in {"ORG", "PRODUCT", "EVENT", "LAW", "MONEY", "GPE", "NORP"}:
                 c = _normalize_candidate(ent.text)
@@ -142,36 +142,35 @@ def extract_candidate_terms(text: str, limit: int = 30) -> List[str]:
 
     candidates.extend(spacy_candidates)
 
-    # Regex enrichment keeps feature usable without spaCy model and captures finance phrases/acronyms.
+    # Regex pass keeps extraction useful when spaCy output is thin.
     for hit in re.findall(r"\b[A-Za-z][A-Za-z\-]{2,}(?:\s+[A-Za-z][A-Za-z\-]{2,}){0,4}\b", normalized_text):
         c = _normalize_candidate(hit)
         if _is_reasonable_candidate(c):
             words = c.split()
             if len(words) >= 2:
-                # Prefer multi-word phrases ending in common finance suffix terms.
+                # Give a slight preference to finance-like endings.
                 if words[-1] in _FINANCE_SUFFIX_WORDS:
                     candidates.append(c)
-                # Also include other multi-word candidates for broader coverage.
                 candidates.append(c)
             else:
                 candidates.append(c)
 
-    # Capture uppercase finance abbreviations from original text (e.g., EBITDA, EPS, GDP, ROI).
+    # Capture uppercase acronyms (GDP, ROI, EPS, ...).
     for acronym in re.findall(r"\b[A-Z]{2,10}\b", text or ""):
         if acronym in _KNOWN_FINANCE_ACRONYMS or _is_reasonable_candidate(acronym):
             candidates.append(acronym)
 
-    # Capture slash acronyms such as P/E.
+    # Capture slash acronyms like P/E.
     for acronym in re.findall(r"\b[A-Z]{1,4}/[A-Z]{1,4}\b", text or ""):
         candidates.append(acronym)
 
-    # Keep known single-word finance signals so local terms remain detectable.
+    # Keep common one-word finance terms.
     for token in re.findall(r"\b[A-Za-z][A-Za-z\-]{2,}\b", normalized_text):
         c = _normalize_candidate(token)
         if c in _FINANCE_SIGNAL_WORDS and _is_reasonable_candidate(c):
             candidates.append(c)
 
-    # Capture common fixed finance phrases directly.
+    # Add a few fixed phrases we know we care about.
     fixed_phrases = [
         "quantitative easing",
         "bond yield",
@@ -185,7 +184,7 @@ def extract_candidate_terms(text: str, limit: int = 30) -> List[str]:
         if phrase in lower_text:
             candidates.append(phrase)
 
-    # Preserve order, deduplicate, then prefer longer phrases.
+    # De-duplicate then prefer longer phrases.
     seen = set()
     deduped: List[str] = []
     for c in candidates:

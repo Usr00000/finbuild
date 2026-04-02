@@ -34,7 +34,7 @@ async def fetch_newsapi_articles(
             "q": q,
             "language": language,
             "sortBy": "publishedAt",
-            # Everything is always newest-first, so use a large page and paginate.
+            # Provider is newest-first; we re-order after collecting pages.
             "pageSize": 100,
         }
         if from_date:
@@ -53,7 +53,7 @@ async def fetch_newsapi_articles(
 
         collected: List[Dict[str, Any]] = []
         if from_date and to_date:
-            # Fetch each day in the range so results naturally cover older dates first.
+            # Pull per-day chunks so range results can be shown oldest -> newest.
             cursor = from_date
             max_pages_per_day = 2
             stop_fetching = False
@@ -149,7 +149,7 @@ def _matches_query(article: Dict[str, Any], tokens: List[str]) -> bool:
 
 
 def _handle_and_normalize(resp: httpx.Response, query: Optional[str]) -> tuple[List[Dict[str, Any]], int]:
-    # Common error handling
+    # Normalize common provider errors first.
     if resp.status_code == 401:
         raise httpx.HTTPStatusError("Unauthorized (401): API key rejected", request=resp.request, response=resp)
     if resp.status_code == 429:

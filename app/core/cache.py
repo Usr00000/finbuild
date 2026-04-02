@@ -1,7 +1,7 @@
 import time
 from typing import Optional, Dict, Any, Tuple
 
-# Key: (q, from_date, language)
+# Generic tuple key used by services.
 CacheKey = Tuple[Optional[str], Optional[str], str]
 
 _CACHE: Dict[CacheKey, Tuple[float, Dict[str, Any]]] = {}

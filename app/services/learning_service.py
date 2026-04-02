@@ -166,14 +166,14 @@ def get_concept(term: str) -> Optional[Dict[str, Any]]:
 
     content = load_learning_content()
 
-    # Exact key match first
+    # Fast path: normalized key match.
     concept = content.get(query)
     if concept:
         payload = {"key": query, **concept}
         cache_set(cache_key, {"concept": payload}, ttl_seconds=CACHE_TTL_SECONDS)
         return payload
 
-    # Exact match against term field
+    # Fallback: match by concept term label.
     for key, item in content.items():
         if _normalize(str(item.get("term", ""))) == query:
             payload = {"key": key, **item}
@@ -199,9 +199,8 @@ def _resolve_local_concept_by_term(term: str) -> Optional[Dict[str, Any]]:
 
 def _collect_local_terms_found_in_text(text: str) -> List[Dict[str, str]]:
     """
-    Find local curated concept terms present in the snippet using word boundaries.
-    This guarantees local terms (e.g. 'profit', 'bond', 'interest rate') remain linkable
-    even when NLP candidate extraction is noisy.
+    Find local concept terms directly in the snippet using word boundaries.
+    This keeps core terms linkable even when NLP candidates are noisy.
     """
     content = load_learning_content()
     lower_text = (text or "").lower()
@@ -226,14 +225,13 @@ def _collect_local_terms_found_in_text(text: str) -> List[Dict[str, str]]:
                 }
             )
 
-    # Longest phrases first so 'interest rate' is chosen before 'rate'.
+    # Match longer phrases first (e.g. "interest rate" before "rate").
     return sorted(matches, key=lambda m: len(_normalize(m["term"])), reverse=True)
 
 
 def _should_validate_non_local_candidate(candidate: str, original_text: str) -> bool:
     """
-    Guardrail for Wikipedia validation calls.
-    Keep useful finance phrases/acronyms while avoiding generic single words.
+    Decide whether a non-local candidate is worth a Wikipedia lookup.
     """
     normalized = _normalize(candidate)
     if not normalized:
@@ -242,12 +240,12 @@ def _should_validate_non_local_candidate(candidate: str, original_text: str) -> 
     if len(words) >= 2:
         return True
 
-    # Keep acronyms from original text (e.g. EBITDA, EPS).
+    # Keep uppercase acronyms from the source text.
     acronym_pattern = re.compile(rf"\b{re.escape(candidate)}\b")
     if candidate.isupper() and acronym_pattern.search(original_text):
         return True
 
-    # Allow single-word finance signals often used in snippets.
+    # Keep a small list of one-word finance signals.
     finance_signals = {
         "profit",
         "revenue",
@@ -346,8 +344,7 @@ def _preferred_wiki_titles_for_term(term: str) -> List[str]:
 
 def _rank_nlp_candidates(candidates: List[str], original_text: str) -> List[str]:
     """
-    Prioritize high-signal finance phrases/acronyms so they are evaluated
-    before noisy long chunks when max_terms is reached.
+    Rank candidates so high-signal finance terms are checked first.
     """
     preferred = {
         "quantitative easing",
@@ -373,7 +370,7 @@ def _rank_nlp_candidates(candidates: List[str], original_text: str) -> List[str]
         words = normalized.split()
         is_preferred = 1 if normalized in preferred else 0
         is_acronym = 1 if candidate.isupper() and len(candidate) >= 3 and candidate in original_upper else 0
-        # Fewer words are often cleaner terms than long noisy chunks.
+        # Shorter phrases are often cleaner than long fragments.
         compactness = -len(words)
         return (is_preferred, is_acronym, compactness)
 
@@ -391,8 +388,8 @@ def _extract_text_from_html_paragraph(page_html: str) -> str:
 
 async def _validate_with_wiki_page_fallback(term: str) -> Dict[str, Any]:
     """
-    Fallback when Wikipedia API endpoints are unavailable (e.g. 403 in some environments).
-    Validates by resolving /wiki/<term> page and extracting a minimal summary.
+    Fallback when Wikipedia API endpoints fail.
+    Uses the public /wiki page and extracts a short summary paragraph.
     """
     if not _normalize(term):
         return {"valid": False, "term": term, "title": term, "summary": "", "url": ""}
@@ -413,7 +410,7 @@ async def _validate_with_wiki_page_fallback(term: str) -> Dict[str, Any]:
                 continue
 
             final_url = str(resp.url)
-            # Ignore non-article pages.
+            # Skip non-article namespaces.
             if any(marker in final_url for marker in ("/wiki/Special:", "/wiki/Help:", "/wiki/File:")):
                 continue
 
@@ -440,8 +437,7 @@ async def _validate_with_wiki_page_fallback(term: str) -> Dict[str, Any]:
 
 async def validate_term_with_wikipedia(term: str) -> Dict[str, Any]:
     """
-    Wikipedia validation layer for terms not present in local curated concepts.
-    Cached to avoid repeated network calls.
+    Validate a term against Wikipedia with caching.
     """
     normalized_term = _normalize(term)
     if not normalized_term:
@@ -466,7 +462,7 @@ async def validate_term_with_wikipedia(term: str) -> Dict[str, Any]:
                 .get("desktop", {})
                 .get("page", "")
             )
-            # Accept direct pages; disambiguation pages will use search fallback below.
+            # Use direct summary pages unless they are disambiguation pages.
             if summary and data.get("type") != "disambiguation":
                 payload = {
                     "valid": True,
@@ -477,7 +473,7 @@ async def validate_term_with_wikipedia(term: str) -> Dict[str, Any]:
                 }
 
             if not payload["valid"]:
-                # Fallback: use Wikipedia search API and resolve top title to summary page.
+                # Fallback to search API, then resolve the top title.
                 search_url = "https://en.wikipedia.org/w/api.php"
                 search_params = {
                     "action": "query",
@@ -527,8 +523,8 @@ async def validate_term_with_wikipedia(term: str) -> Dict[str, Any]:
 
 def _candidate_variants(term: str) -> List[str]:
     """
-    Generate simple variants to improve local/wiki matching for plural phrases.
-    Example: 'bond yields' -> ['bond yields', 'bond yield'].
+    Add simple plural/singular variants for matching.
+    Example: "bond yields" -> ["bond yields", "bond yield"].
     """
     t = (term or "").strip()
     if not t:
@@ -540,7 +536,7 @@ def _candidate_variants(term: str) -> List[str]:
         if len(last) > 3 and last.lower().endswith("s"):
             singular_words = words[:-1] + [last[:-1]]
             variants.append(" ".join(singular_words))
-    # Deduplicate preserving order.
+    # De-duplicate while keeping order.
     seen = set()
     out: List[str] = []
     for v in variants:
@@ -553,7 +549,7 @@ def _candidate_variants(term: str) -> List[str]:
 
 async def get_concept_with_fallback(term: str) -> Optional[Dict[str, Any]]:
     """
-    Local curated concept first. If missing, try Wikipedia fallback concept object.
+    Return local concept data first, then Wikipedia-backed fallback.
     """
     local = get_concept(term)
     if local:
@@ -631,9 +627,8 @@ async def link_finance_terms_in_text(
     context_text: Optional[str] = None,
 ) -> tuple[str, List[Dict[str, str]]]:
     """
-    Convert known finance terms found in text into HTMX-enabled links.
-    Matching is case-insensitive and longer phrases are matched first.
-    Returns (html_with_links, matched_concepts).
+    Turn detected finance terms into HTMX links in snippet text.
+    Returns (linked_html, matched_concepts).
     """
     if not text:
         return "", []
@@ -642,7 +637,7 @@ async def link_finance_terms_in_text(
     accepted_keys: set[str] = set()
     finance_context = f"{context_text or ''} {text}"
 
-    # Phase 1: guaranteed local concept linking from text scan.
+    # Phase 1: link local curated terms found directly in text.
     local_hits = _collect_local_terms_found_in_text(text)
     for hit in local_hits:
         normalized_hit = _normalize(hit["term"])
@@ -654,7 +649,7 @@ async def link_finance_terms_in_text(
         if len(accepted) >= max_terms:
             break
 
-    # Phase 2: NLP candidate extraction for additional non-local terms.
+    # Phase 2: add non-local candidates from NLP + Wikipedia validation.
     raw_candidates = extract_candidate_terms(text, limit=40)
     for candidate in _rank_nlp_candidates(raw_candidates, text):
         normalized_candidate = _normalize(candidate)
@@ -665,7 +660,7 @@ async def link_finance_terms_in_text(
             if _is_obvious_noise_candidate(variant):
                 continue
 
-            # Local curated core check first.
+            # Prefer local curated concepts when available.
             local_concept = _resolve_local_concept_by_term(variant)
             if local_concept:
                 local_key = str(local_concept.get("key", normalized_candidate))
@@ -678,7 +673,7 @@ async def link_finance_terms_in_text(
                 accepted_keys.add(local_key)
                 break
 
-            # Wikipedia validation fallback for non-local terms.
+            # Then try Wikipedia-backed fallback for non-local terms.
             if not _should_validate_non_local_candidate(variant, text):
                 continue
             if not _is_finance_relevant_candidate(variant, finance_context):
@@ -702,7 +697,7 @@ async def link_finance_terms_in_text(
     if not accepted:
         return html.escape(text), []
 
-    # Prioritize longer phrases first for linking.
+    # Link longer phrases first.
     sorted_terms = sorted(accepted.keys(), key=len, reverse=True)
     pattern = re.compile(
         r"(?<![A-Za-z0-9])(" + "|".join(re.escape(t) for t in sorted_terms) + r")(?![A-Za-z0-9])",
@@ -809,7 +804,7 @@ async def get_related_news_for_concept(concept: Dict[str, Any], language: str = 
 
     candidates_by_url: Dict[str, Dict[str, Any]] = {}
 
-    # Exactly one upstream news call per concept search.
+    # Keep this to one upstream news call per concept search.
     concept_term = str(concept.get("term", "")).strip()
     primary_keywords = [k for k in news_keywords[:2] if k]
     query_parts = [concept_term] + primary_keywords

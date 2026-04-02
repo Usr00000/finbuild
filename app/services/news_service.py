@@ -16,10 +16,7 @@ async def get_news_payload(
     page: int = 1,
 ) -> Dict[str, Any]:
     """
-    Business logic for /news:
-    - caching
-    - calling the client
-    - returning stable JSON response
+    Build the normalized news payload used by API and page routes.
     """
     if from_date and to_date and from_date > to_date:
         raise HTTPException(status_code=422, detail="from_date must be earlier than or equal to to_date.")
@@ -45,7 +42,7 @@ async def get_news_payload(
             page_size=page_size,
         )
     except httpx.HTTPStatusError as e:
-        # Convert external API errors into clean HTTP responses
+        # Map provider errors to cleaner API responses.
         status = e.response.status_code if e.response else 502
         if status == 401:
             raise HTTPException(status_code=401, detail="News API key rejected (401).")
@@ -71,5 +68,3 @@ async def get_news_payload(
 
     cache_set(cache_key, payload, ttl_seconds=CACHE_TTL_SECONDS)
     return payload
-
-# "disclaimer": "Educational/informational only. Not financial advice.",

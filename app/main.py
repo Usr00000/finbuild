@@ -11,7 +11,7 @@ app = FastAPI(title="FinBuild API", version="0.1.0")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(pages_router)
 app.include_router(chart_doctor_router)
-# Active Learning Hub router (concept + quiz flow) lives in app/api/routes_learning.py.
+# Learning Hub routes (concept + quiz partials).
 app.include_router(learning_router)
 
 
